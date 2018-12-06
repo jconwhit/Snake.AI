@@ -150,12 +150,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Snake.AI.h" />
+    <ClInclude Include="Snake.h" />
     <ClInclude Include="UI.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Snake.AI.cpp" />
+    <ClCompile Include="Snake.cpp" />
     <ClCompile Include="stdafx.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
