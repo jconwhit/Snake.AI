@@ -8,38 +8,44 @@
 #include "Snake.AI.h"
 #include "UI.h"
 #include "Snake.h"
+#include "Mouse.h"
 
 using namespace std;
 int main()
 {
 	//LoadBG();
+	bool play = true;
+	short x = 1;
+	short y = 0;
 	unsigned char board[BOARD_HEIGHT][BOARD_WIDTH];
 	deque<Snake> d_snake;
-	d_snake.push_back(Snake()); //puts the first piece of the snake at (0,0)
-	d_snake.push_back(Snake());
-	d_snake.push_back(Snake());
-	d_snake.push_back(Snake());
-
+	d_snake.push_back(Snake(1, BOARD_HEIGHT / 2)); //puts the first piece of the snake at (0,0)
+	d_snake.push_back(Snake(2, BOARD_HEIGHT / 2));
+	d_snake.push_back(Snake(3, BOARD_HEIGHT / 2));
+	d_snake.push_back(Snake(4, BOARD_HEIGHT / 2));
+	d_snake.push_back(Snake(5, BOARD_HEIGHT / 2));
 
 	init_board(board); //initializes an empty playing board
-	//update_board(board, d_snake); //puts snake on board
-	print_board(board); //prints the playing board and snake
+	init_deque(board, d_snake); //initializes position of snake in array
+	print_board(board, d_snake); //prints the playing board and snake
 
-	cin.get();
+	Mouse Tom;
+	set_cursor_pos(Tom.getx(), Tom.gety());
+	Color(fRED);
+	std::cout << MOUSE;
+	Color(fDEFAULT);
 
-	while (d_snake.back().getx() < BOARD_WIDTH + 10)
+	/*
+	while ((getchar()) != '\n')
+		;*/
+
+	//use WASD for movement
+	while (play)
 	{
 		Sleep(200);
 
-		if (d_snake.back().getx() < 15)
-		update_board(board, d_snake, 1); //moves +1 in x dir, 0 in y dir
-		else
-			update_board(board, d_snake, 0, 1); //moves +1 in x dir, 0 in y dir
-
-		if (!check_end_pos(d_snake))
-		{
-			break;
-		}
+		keypress(x, y);
+		play = update_board(board, d_snake, x, y);
 	}
 
 	you_died();

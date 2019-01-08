@@ -149,6 +149,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Mouse.h" />
     <ClInclude Include="Snake.AI.h" />
     <ClInclude Include="Snake.h" />
     <ClInclude Include="UI.h" />
@@ -157,7 +158,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Snake.AI.cpp" />
-    <ClCompile Include="Snake.cpp" />
     <ClCompile Include="stdafx.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

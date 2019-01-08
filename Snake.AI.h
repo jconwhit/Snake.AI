@@ -7,33 +7,47 @@
 #include <deque>
 #include "UI.h"
 #include "Snake.h"
+#include <conio.h>
 
 using namespace std;
 
-const int BOARD_WIDTH = 40;
-const int BOARD_HEIGHT = 20;
+//board dimensions
+const int BOARD_WIDTH = 40; //its just the board width
+const int BOARD_HEIGHT = 20; //this one is the HEIGHT tho
+
+//matches visuals of x and y output increments [y = 2x by default]
+//no functionality support for values other than 2
 const int X_MULT = 2;
-const int X_OFFSET = 1;
+
+//moves initial "x" position to match board origin
+const int X_OFFSET = 2;
+
+//moves initial "y" position to match board origin
 const int Y_OFFSET = 1;
+
+//special chars for visual output
 const unsigned char SNAKE = 0xfe; //snake square char
 const unsigned char BLANK = ' '; //empty spot
-const unsigned char MOUSE = 'O';
+const unsigned char MOUSE = '#'; //mouse char
 
-
+//forward declarations
 void init_board(unsigned char arry[][BOARD_WIDTH]);
-void update_board(unsigned char arry[][BOARD_WIDTH], deque<Snake> &deque, int xmod, int ymod);
-void remove_tail(deque<Snake> &deque);
-void add_head(deque<Snake> &deque);
+void init_deque(unsigned char arry[][BOARD_WIDTH], deque<Snake> deque);
+bool update_board(unsigned char arry[][BOARD_WIDTH], deque<Snake> &deque, int xmod, int ymod);
+void remove_tail(deque<Snake> deque);
+void head_recolor(deque<Snake> deque);
+void add_head(deque<Snake> deque);
+bool check_body_collision(deque<Snake> &deque, int xmod, int ymod);
+void dead_head(deque<Snake> deque, int xmod, int ymod);
 void set_cursor_pos(int x, int y);
-
-int check_end_pos(deque<Snake> &deque);
-
-void print_board(unsigned char arry[][BOARD_WIDTH]);
+bool check_end_cond(deque<Snake> &deque);
+void print_board(unsigned char arry[][BOARD_WIDTH], deque<Snake> &deque);
 void load_top();
 void load_bottom();
-
+void keypress(short &x, short &y);
 void you_died(); //end game
 
+//initializes an empty arry[BOARD_HEIGHT][BOARD_WIDTH]
 void init_board(unsigned char arry[][BOARD_WIDTH])
 {
 	for (int i = 0; i < BOARD_HEIGHT; i++)
@@ -45,45 +59,104 @@ void init_board(unsigned char arry[][BOARD_WIDTH])
 	}
 }
 
-void update_board(unsigned char arry[][BOARD_WIDTH], deque<Snake> &deque, int xmod = 0, int ymod = 0)
+//loads all deque elements into array
+void init_deque(unsigned char arry[][BOARD_WIDTH], deque<Snake> deque)
 {
-	if (deque.size() > 1)
+	for (int i = 0; i < deque.size(); i++)
 	{
-		remove_tail(deque);
-		arry[deque.front().gety()][deque.front().getx()] = BLANK; //deletes snake block on board
-		deque.pop_front(); //deletes oldest snake block (end of tail)
-
-		deque.push_back(Snake(deque.back().getx() + xmod, deque.back().gety() + ymod)); //inserts new snake object as head
-		arry[deque.back().gety()][deque.back().getx()] = SNAKE; //shows snake block on board
-		add_head(deque);
+		arry[deque[i].gety()][deque[i].getx()] = SNAKE;
 	}
-	else if (deque.size() == 1)
-	{
-		remove_tail(deque);
-		arry[deque.front().gety()][deque.front().getx()] = BLANK;
-		deque.push_back(Snake(deque.back().getx() + xmod, deque.back().gety() + ymod)); //inserts new snake object as head
-		arry[deque.back().gety()][deque.back().getx()] = SNAKE;
-		deque.pop_front();
-		add_head(deque);
-	}
-	
 }
 
-void remove_tail(deque<Snake> &deque)
+//moves the snake by deleting the end of the tail and creating a new object as the head
+bool update_board(unsigned char arry[][BOARD_WIDTH], deque<Snake> &deque, int xmod = 0, int ymod = 0)
+{
+	if ((((deque.back().getx()) + xmod) >= 0) && (((deque.back().getx()) + xmod) < BOARD_WIDTH) &&
+		(((deque.back().gety()) + ymod) >= 0) && (((deque.back().gety()) + ymod) < BOARD_HEIGHT) &&
+		check_body_collision(deque, xmod, ymod))
+	{
+		remove_tail(deque);
+		head_recolor(deque);
+
+		//deletes snake block on board
+		arry[deque.front().gety()][deque.front().getx()] = BLANK;
+
+		//inserts new snake object as head
+		deque.push_back(Snake(deque.back().getx() + xmod, deque.back().gety() + ymod));
+
+		//draws snake block on board
+		arry[deque.back().gety()][deque.back().getx()] = SNAKE;
+
+		add_head(deque);
+
+		//deletes oldest snake block (end of tail) 
+		//[needs to be at the end in case the deque size is only 1]
+		deque.pop_front();
+		return true;
+	}
+	else
+	{
+		remove_tail(deque);
+		head_recolor(deque);
+		dead_head(deque, xmod, ymod);
+		return false;
+	}
+}
+
+//erases last snake block/tail from the board (visually only)
+void remove_tail(deque<Snake> deque)
 {
 	set_cursor_pos(deque.front().getx(), deque.front().gety());
 	std::cout << BLANK;
 }
 
-void add_head(deque<Snake> &deque)
+//returns the color of the head to fDEFAULT
+void head_recolor(deque<Snake> deque)
+{
+	set_cursor_pos(deque.back().getx(), deque.back().gety());
+	std::cout << SNAKE;
+	set_cursor_pos(-1, BOARD_HEIGHT + 2);
+}
+
+//draws snake head on the board (visually only)
+void add_head(deque<Snake> deque)
 {
 	set_cursor_pos(deque.back().getx(), deque.back().gety());
 	Color(fGREEN);
 	std::cout << SNAKE;
 	Color(fDEFAULT);
-	set_cursor_pos(BOARD_WIDTH + 1, BOARD_HEIGHT);
+	set_cursor_pos(-1, BOARD_HEIGHT + 2);
 }
 
+//checks if the next move will collide with the body of the snake,
+//not including the tail
+bool check_body_collision(deque<Snake> &deque, int xmod, int ymod)
+{
+	//starts with the second piece from the tail, 
+	//not including the last piece for collision purposes
+	for (int i = 1; i < deque.size(); i++) 
+	{
+		if (((deque.back().getx() + xmod) == deque[i].getx()) &&
+			((deque.back().gety() + ymod) == deque[i].gety()))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void dead_head(deque<Snake> deque, int xmod, int ymod)
+{
+	set_cursor_pos(deque.back().getx() + xmod, deque.back().gety() + ymod);
+	Color(fRED);
+	std::cout << SNAKE;
+	Color(fDEFAULT);
+	set_cursor_pos(-1, BOARD_HEIGHT + 2);
+}
+
+//sets the cursor to a location in the console relative to the origin of the board array
+//for printing visuals
 void set_cursor_pos(int x, int y)
 {
 	static const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -92,39 +165,31 @@ void set_cursor_pos(int x, int y)
 	SetConsoleCursorPosition(hOut, coord);
 }
 
-int check_end_pos(deque<Snake> &deque)
+bool check_end_cond(deque<Snake> &deque)
 {
-	if ((BOARD_WIDTH > deque.back().getx()) && (BOARD_HEIGHT > deque.back().gety()))
+	if ((BOARD_WIDTH > deque.back().getx()) && (BOARD_HEIGHT > deque.back().gety()) && 
+		(deque.back().getx() >= 0) && (deque.back().gety() >= 0))
 	{
-		return TRUE;
+		return true;
 	}
 	else
 	{
-		return FALSE;
+		return false;
 	}
 }
 
-void print_board(unsigned char arry[][BOARD_WIDTH])
+void print_board(unsigned char arry[][BOARD_WIDTH], deque<Snake> &deque)
 {
 	load_top();
 
 	for (int i = 0; i < BOARD_HEIGHT; i++)
 	{
 		Color(fGREEN);
-		std::cout << VERT;
+		std::cout << VERT << ' ';
 		Color(fDEFAULT);
 		for (int j = 0; j < BOARD_WIDTH; j++)
 		{
-			if (arry[i][j] == SNAKE)
-			{
-				Color(fGREEN);
-				std::cout << arry[i][j] << ' ';
-				Color(fDEFAULT);
-			}
-			else
-			{
-				std::cout << arry[i][j] << ' ';
-			}
+			std::cout << arry[i][j] << ' ';
 		}
 		Color(fGREEN);
 		std::cout << VERT;
@@ -132,6 +197,7 @@ void print_board(unsigned char arry[][BOARD_WIDTH])
 		std::cout << endl;
 	}
 	load_bottom();
+	add_head(deque);
 }
 
 void load_top()
@@ -140,7 +206,7 @@ void load_top()
 
 	std::cout << UL;
 
-	for (int i = 0; i < (X_MULT*BOARD_WIDTH); i++)
+	for (int i = 0; i < ((X_MULT*BOARD_WIDTH) + 1); i++)
 	{
 		std::cout << HORIZ;
 	}
@@ -156,7 +222,7 @@ void load_bottom()
 
 	std::cout << LL;
 
-	for (int i = 0; i < (X_MULT*BOARD_WIDTH); i++)
+	for (int i = 0; i < ((X_MULT*BOARD_WIDTH) + 1); i++)
 	{
 		std::cout << HORIZ;
 	}
@@ -166,6 +232,50 @@ void load_bottom()
 	Color(fDEFAULT);
 }
 
+void keypress(short &x, short &y)
+{
+	unsigned char c;
+	cin.clear();
+	if (_kbhit())
+	{
+		switch (c = _getch())
+		{
+		case 'w':
+			if (y != 1)
+			{
+				x = 0;
+				y = -1;
+			}
+			break;
+		case 'a':
+			if (x != 1)
+			{
+				x = -1;
+				y = 0;
+			}
+			break;
+		case 'd':
+			if (x != -1)
+			{
+				x = 1;
+				y = 0;
+			}
+			break;
+		case 's':
+			if (y != -1)
+			{
+				x = 0;
+				y = 1;
+			}
+			break;
+		}
+		
+		cin.sync();
+	}
+
+}
+
+//prints DS "YOU DIED" on screen
 void you_died()
 {
 	Color(fRED);
